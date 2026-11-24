@@ -44,7 +44,7 @@ sequenceDiagram
     App->>CC: SASL OAUTHBEARER with JWT<br/>logicalCluster + identityPoolId
     CC->>Entra: Get signing keys (JWKS, cached)
     CC->>CC: Check signature, iss, exp
-    CC->>CC: Pool filter: claims.aud equals app client ID<br/>and claims.roles contains the cc_claim value
+    CC->>CC: Pool filter: claims.roles contains the cc_claim value
     CC->>CC: Set principal User:pool-id
     CC->>Kafka: Check RBAC or ACL for the principal
     Kafka-->>App: Allow or deny each request
@@ -132,17 +132,17 @@ Set these variables in `azure/terraform.tfvars`.
 | `uami_name`           | No       | `cc-kafka-client-uami` | Name of the UAMI.                                                           |
 | `subscription_id`     | No       | `null`                 | Azure subscription. If not set, `ARM_SUBSCRIPTION_ID` is used.              |
 
-The `confluent/` root takes `entra_tenant_id`, `entra_application_client_id`, and `cc_claim`. `scripts/deploy.sh` supplies all three from the Azure outputs.
+The `confluent/` root takes `entra_tenant_id` and `cc_claim`. `scripts/deploy.sh` supplies both from the Azure outputs.
 
 ### The cc_claim value
 
-The identity pool filter checks two conditions:
+The identity pool filter checks one condition:
 
 ```
-claims.aud == "<app client ID>" && '<cc_claim>' in claims.roles
+'<cc_claim>' in claims.roles
 ```
 
-`cc_claim` is a text value. It is an app role on the Entra app. The deployment assigns this role to the UAMI. Entra then adds the value to the `roles` claim of each token for the UAMI. Only identities with the role pass the filter.
+`cc_claim` is a text value. It is an app role on the Entra app. The deployment assigns this role to the UAMI. Entra then adds the value to the `roles` claim of each token for the UAMI. Only identities with the role pass the filter. The role exists only on this app, so only tokens for this app carry it.
 
 To give another workload access, assign the same app role to its identity.
 
@@ -150,12 +150,37 @@ The claim name is always `roles`. Entra does not add a custom claim name to a ma
 
 The account that runs `tofu apply` must be allowed to assign app roles. It needs the Application Administrator role or `AppRoleAssignment.ReadWrite.All`.
 
-### Two IDs that look alike
+### Why the filter uses the role and not `aud`
+
+The `aud` claim is the same in every token for the app. A filter on `aud` cannot tell identities apart. Any identity that gets a token for the Application ID URI matches the filter. A user token for the app has the same `aud` as a managed identity token.
+
+The `roles` claim is different. It holds a value only if you assign the app role to that identity. You control access with explicit role assignments.
+
+| Filter                              | Who matches                                                |
+| ----------------------------------- | ---------------------------------------------------------- |
+| `claims.aud == "<app client ID>"`   | Every identity with a token for the app                    |
+| `'<cc_claim>' in claims.roles`      | Only identities that have the app role                     |
+
+A filter with both conditions is also valid. The `aud` condition adds no protection, because the role exists only on this app. This repository uses the role only.
+
+The app role allows only applications (`allowed_member_types = ["Application"]`). Users and groups cannot hold it. Do not add `"User"`. If you add it, a user with the role passes the filter.
+
+### Several applications or stages
+
+All identities that match one filter share one principal, `User:<pool-id>`. They get the same Kafka permissions. To give different access, use one `cc_claim` value for each application or stage, for example `orders-dev` and `orders-prod`. Each value is one app role and one pool. Grant each pool its own topic access.
+
+This repository supports one `cc_claim` value for each deployment. To use several values:
+
+- Use a separate state and `terraform.tfvars` for each deployment. Change `cc_claim`, `resource_group_name`, `uami_name`, and `identity_pool_name`, so that the names do not collide.
+- Or change the code to take a list of values. Create one app role, one role assignment, and one pool for each value.
+
+If you change `cc_claim`, Terraform replaces the app role. Tokens with the old value stop matching. Assign the new role to the UAMI before you test.
+
+### Two values that look alike
 
 | Value                        | Used for                           | Where it goes                  |
 | ---------------------------- | ---------------------------------- | ------------------------------ |
 | Application ID URI           | The token resource                 | IMDS `resource` parameter      |
-| Application (client) ID      | The token audience (`aud`)         | Confluent identity pool filter |
 | UAMI client ID               | Select the identity                | IMDS `client_id` parameter     |
 
 Do not swap these values.
@@ -213,7 +238,7 @@ The scripts use `tofu` if it is installed. Otherwise they use `terraform`.
 | Symptom                                    | Action                                                                                                       |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
 | IMDS returns an error or no token          | Make sure the workload is on Azure and has the UAMI. Make sure `resource` equals the Application ID URI exactly. |
-| Confluent rejects the issuer or audience   | Make sure the token `iss` ends with `/v2.0`. Make sure `aud` equals the Application (client) ID.             |
+| Confluent rejects the issuer               | Make sure the token `iss` ends with `/v2.0` and has your tenant ID.                                          |
 | Confluent rejects the token (no match)     | Run `verify-imds.sh`. Make sure the `roles` claim contains the `cc_claim` value. Make sure the app role is assigned to the UAMI. |
 | Authentication works, but Kafka denies access | [Grant Kafka access](#grant-kafka-access) to `User:<pool-id>`.                                            |
 | Java rejects the endpoint                  | Make sure the `allowed.urls` system property equals the token endpoint URL exactly, with the query string.   |
@@ -225,7 +250,7 @@ The scripts use `tofu` if it is installed. Otherwise they use `terraform`.
 
 - Keep Confluent credentials only in `.env` or in environment variables. Do not put them in `.tf` or `.tfvars` files.
 - `.env`, `*.tfvars`, state files, and `out/` are in `.gitignore`. Do not commit them. Protect the state.
-- The pool filter checks the audience and the `cc_claim` value. Each identity with the app role gets access through the pool. Assign the role to few identities. Do not use `filter = "true"`.
+- The pool filter checks only the `cc_claim` value. Each identity with the app role gets access through the pool. Assign the role to few identities. Do not use `filter = "true"`.
 - A bearer token is a credential. Do not log it. Do not paste it into online tools.
 - The UAMI does not need an Azure role to get a token. Add roles only if the workload uses other Azure resources.
 

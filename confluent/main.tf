@@ -12,7 +12,7 @@ resource "confluent_identity_pool" "kafka_client" {
   display_name   = var.identity_pool_name
   description    = "Identity pool for the Azure Kafka client UAMI"
   identity_claim = "claims.sub"
-  filter         = "claims.aud == \"${var.entra_application_client_id}\" && '${var.cc_claim}' in claims.roles"
+  filter         = "'${var.cc_claim}' in claims.roles"
 
   identity_provider {
     id = confluent_identity_provider.entra.id

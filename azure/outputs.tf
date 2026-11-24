@@ -4,7 +4,7 @@ output "tenant_id" {
 }
 
 output "application_client_id" {
-  description = "Application (client) ID. Used in the Confluent pool filter (token aud)."
+  description = "Application (client) ID of the Entra app. For reference. It is the aud claim of the token."
   value       = azuread_application.cc_audience.client_id
 }
 

@@ -14,7 +14,6 @@ mkdir -p out
 "$TF" -chdir=confluent init -input=false
 "$TF" -chdir=confluent apply \
   -var "entra_tenant_id=$(az_out tenant_id)" \
-  -var "entra_application_client_id=$(az_out application_client_id)" \
   -var "cc_claim=$(az_out cc_claim)"
 "$TF" -chdir=confluent output -json > out/confluent-outputs.json
 
