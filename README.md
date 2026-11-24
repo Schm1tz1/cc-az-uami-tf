@@ -239,7 +239,8 @@ The scripts use `tofu` if it is installed. Otherwise they use `terraform`.
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
 | IMDS returns an error or no token          | Make sure the workload is on Azure and has the UAMI. Make sure `resource` equals the Application ID URI exactly. |
 | Confluent rejects the issuer               | Make sure the token `iss` ends with `/v2.0` and has your tenant ID.                                          |
-| Confluent rejects the token (no match)     | Run `verify-imds.sh`. Make sure the `roles` claim contains the `cc_claim` value. Make sure the app role is assigned to the UAMI. |
+| Confluent rejects the token (`CLAIMS_POOL_FILTER_MISMATCH`) | Run `verify-imds.sh`. Make sure the `roles` claim contains the `cc_claim` value. Make sure the app role is assigned to the UAMI. |
+| `roles` is `null`, but the role is assigned | IMDS caches tokens. The cached token is older than the role assignment. Request a new token with `&bypass_cache=true` in the IMDS query, or wait for the cached token to expire. |
 | Authentication works, but Kafka denies access | [Grant Kafka access](#grant-kafka-access) to `User:<pool-id>`.                                            |
 | Java rejects the endpoint                  | Make sure the `allowed.urls` system property equals the token endpoint URL exactly, with the query string.   |
 | Python gets no token                       | Use a `confluent-kafka` version that supports `azure_imds`. The query must contain `api-version`, `resource`, and `client_id`. |
