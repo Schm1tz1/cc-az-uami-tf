@@ -1,0 +1,36 @@
+# Secrets and local config. Never commit these.
+.env
+.env.*
+!.env.example
+*.tfvars
+*.tfvars.json
+*.pem
+*.key
+*.pfx
+
+# Script output (IDs, generated client settings)
+out/
+
+# OpenTofu / Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+.terraform.*
+tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# OS and editor
+.DS_Store
+.idea/
+.vscode/
+
+# Claude Code local settings
+.claude/settings.local.json
+CLAUDE.md
+

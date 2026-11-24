@@ -1,0 +1,12 @@
+owner               = "<your-username>"
+owner_email         = "<your-email>"
+resource_group_name = "<resource-group-name>"
+location            = "westeurope"
+application_id_uri  = "api://<bootstrap-host>:9092"
+
+# Value for the token roles claim. The identity pool filter requires it.
+cc_claim = "<cc-claim-value>"
+
+# Test VM. Set create_vm = false to attach the UAMI to your own workload.
+create_vm        = true
+allowed_ssh_cidr = "<your-public-ip>/32"
