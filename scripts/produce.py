@@ -32,6 +32,6 @@ p = Producer({
     "sasl.oauthbearer.extensions": f"logicalCluster={e['KAFKA_CLUSTER_ID']},identityPoolId={e['IDENTITY_POOL_ID']}",
     "error_cb": lambda err: print(f"kafka error: {err}", file=sys.stderr),
 })
-p.produce(e["KAFKA_TOPIC"], key="smoke-test", value="UAMI OAuth test", on_delivery=on_delivery)
+p.produce(e["KAFKA_TOPIC"], key="python-client-test", value="UAMI OAuth test with Python Producer from confluent_kafka", on_delivery=on_delivery)
 if p.flush(30) or failed:
     sys.exit("produce failed (auth ok but denied? check pool authorization)")

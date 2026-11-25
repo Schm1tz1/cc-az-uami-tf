@@ -1,9 +1,7 @@
 # Azure UAMI with Confluent Cloud
-
 Deploy and test a Kafka client on Azure. The client authenticates to an existing Confluent Cloud cluster. It uses an Azure user-assigned managed identity (UAMI) and OAuth. The client has no stored secret and no Kafka API key.
 
 ## How it works
-
 ```mermaid
 flowchart LR
     subgraph Azure
@@ -27,7 +25,6 @@ flowchart LR
 ```
 
 ### UAMI authentication flow
-
 ```mermaid
 sequenceDiagram
     autonumber
@@ -62,7 +59,6 @@ This repository creates:
 This repository does not create or change the Kafka cluster. It does not create role bindings or ACLs. See [Grant Kafka access](#grant-kafka-access).
 
 ## Requirements
-
 - OpenTofu 1.5 or later, or Terraform 1.5 or later
 - Azure CLI, signed in (`az login`). The account must be able to create Entra app registrations.
 - A Confluent Cloud API key and secret. The key must have the OrganizationAdmin role.
@@ -70,7 +66,6 @@ This repository does not create or change the Kafka cluster. It does not create 
 - `jq`, `ssh`, and `scp` on your computer (for the test)
 
 ## Repository layout
-
 ```
 azure/              Azure resources (separate state)
 confluent/          Confluent identity provider and pool (separate state)
@@ -79,7 +74,6 @@ Makefile            Short commands for the scripts
 ```
 
 ## Quick start
-
 1. Copy the example variable file and edit it.
 
    ```bash
@@ -112,10 +106,9 @@ Makefile            Short commands for the scripts
    make test
    ```
 
-   The test shows the token claims and then the delivery of one message.
+   The test shows the token claims. Then it sends one message with the Python client and one with the Java client (`kafka-console-producer` from the Confluent Community tarball, installed on the VM by cloud-init).
 
 ## Configuration
-
 Set these variables in `azure/terraform.tfvars`.
 
 | Variable              | Required | Default                | Description                                                                 |
@@ -135,7 +128,6 @@ Set these variables in `azure/terraform.tfvars`.
 The `confluent/` root takes `entra_tenant_id` and `cc_claim`. `scripts/deploy.sh` supplies both from the Azure outputs.
 
 ### The cc_claim value
-
 The identity pool filter checks one condition:
 
 ```
@@ -151,7 +143,6 @@ The claim name is always `roles`. Entra does not add a custom claim name to a ma
 The account that runs `tofu apply` must be allowed to assign app roles. It needs the Application Administrator role or `AppRoleAssignment.ReadWrite.All`.
 
 ### Why the filter uses the role and not `aud`
-
 The `aud` claim is the same in every token for the app. A filter on `aud` cannot tell identities apart. Any identity that gets a token for the Application ID URI matches the filter. A user token for the app has the same `aud` as a managed identity token.
 
 The `roles` claim is different. It holds a value only if you assign the app role to that identity. You control access with explicit role assignments.
@@ -166,7 +157,6 @@ A filter with both conditions is also valid. The `aud` condition adds no protect
 The app role allows only applications (`allowed_member_types = ["Application"]`). Users and groups cannot hold it. Do not add `"User"`. If you add it, a user with the role passes the filter.
 
 ### Several applications or stages
-
 All identities that match one filter share one principal, `User:<pool-id>`. They get the same Kafka permissions. To give different access, use one `cc_claim` value for each application or stage, for example `orders-dev` and `orders-prod`. Each value is one app role and one pool. Grant each pool its own topic access.
 
 This repository supports one `cc_claim` value for each deployment. To use several values:
@@ -177,7 +167,6 @@ This repository supports one `cc_claim` value for each deployment. To use severa
 If you change `cc_claim`, Terraform replaces the app role. Tokens with the old value stop matching. Assign the new role to the UAMI before you test.
 
 ### Two values that look alike
-
 | Value                        | Used for                           | Where it goes                  |
 | ---------------------------- | ---------------------------------- | ------------------------------ |
 | Application ID URI           | The token resource                 | IMDS `resource` parameter      |
@@ -186,7 +175,6 @@ If you change `cc_claim`, Terraform replaces the app role. Tokens with the old v
 Do not swap these values.
 
 ## Grant Kafka access
-
 A new identity pool has no Kafka permissions. Without them, the client can authenticate but Kafka denies every operation.
 
 1. Get the pool ID: `tofu -chdir=confluent output confluent_identity_pool_id`
@@ -195,7 +183,6 @@ A new identity pool has no Kafka permissions. Without them, the client can authe
 Use your normal process (RBAC or ACL) for this step.
 
 ## Use your own workload
-
 Set `create_vm = false` and run `make deploy`. Then attach the UAMI to your workload. The `uami_id` output gives the resource ID. For a Linux VM in Terraform, add this block:
 
 ```hcl
@@ -213,17 +200,16 @@ Then run `KAFKA_BOOTSTRAP=... KAFKA_CLUSTER_ID=... KAFKA_TOPIC=... scripts/gen-e
 - `out/client-java.properties`: settings for a Java client
 
 ### Java client
-
 1. Add `io.confluent:kafka-client-plugins` version 8.1 or later to the classpath.
 2. Use `out/client-java.properties`.
 3. Start the JVM with the `-Dorg.apache.kafka.sasl.oauthbearer.allowed.urls=...` flag. The first comment in the properties file gives the exact value. The value must match the token endpoint URL exactly.
 
-### Python client
+`scripts/verify-java.sh` is a working example. It runs `kafka-console-producer` with `out/client-java.properties` and the `kafka-client-plugins` jar on `CLASSPATH`.
 
+### Python client
 `scripts/produce.py` is a working example. It uses `confluent-kafka` with `sasl.oauthbearer.metadata.authentication.type=azure_imds`.
 
 ## Commands
-
 | Command         | Action                                                       |
 | --------------- | ------------------------------------------------------------ |
 | `make validate` | Check format and syntax of both roots. No cloud access.      |
@@ -234,7 +220,6 @@ Then run `KAFKA_BOOTSTRAP=... KAFKA_CLUSTER_ID=... KAFKA_TOPIC=... scripts/gen-e
 The scripts use `tofu` if it is installed. Otherwise they use `terraform`.
 
 ## Troubleshooting
-
 | Symptom                                    | Action                                                                                                       |
 | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
 | IMDS returns an error or no token          | Make sure the workload is on Azure and has the UAMI. Make sure `resource` equals the Application ID URI exactly. |
@@ -248,7 +233,6 @@ The scripts use `tofu` if it is installed. Otherwise they use `terraform`.
 | `allowed_ssh_cidr` error                   | Set `allowed_ssh_cidr` to your public IP with `/32`, or set `create_vm = false`.                             |
 
 ## Security
-
 - Keep Confluent credentials only in `.env` or in environment variables. Do not put them in `.tf` or `.tfvars` files.
 - `.env`, `*.tfvars`, state files, and `out/` are in `.gitignore`. Do not commit them. Protect the state.
 - The pool filter checks only the `cc_claim` value. Each identity with the app role gets access through the pool. Assign the role to few identities. Do not use `filter = "true"`.
@@ -256,12 +240,11 @@ The scripts use `tofu` if it is installed. Otherwise they use `terraform`.
 - The UAMI does not need an Azure role to get a token. Add roles only if the workload uses other Azure resources.
 
 ## Notes
-
-- Use one tool to manage the identity provider. If it already exists, import it into state or create only the pool.
+- To add a prefix to the names of the new Confluent resources, set `TF_VAR_name_prefix=myteam` in `.env`. The names become `myteam_azure-kafka-client` and so on. The prefix does not apply to an existing provider.
+- Confluent allows one identity provider for each Entra tenant in an organization. If it already exists, the apply fails with `409 Conflict`. Set `TF_VAR_identity_provider_id=op-...` (in `.env`) to create only the pool. `make destroy` then does not delete the shared provider.
 - `make deploy` and `make destroy` have not been run against real accounts. Run `make validate` first.
 
 ## References
-
 - [Confluent: Azure UAMI OAuth](https://docs.confluent.io/cloud/current/security/authenticate/workload-identities/identity-providers/oauth/clients/uami.html)
 - [Confluent: OAuth identity providers](https://docs.confluent.io/cloud/current/security/authenticate/workload-identities/identity-providers/oauth/identity-providers.html)
 - [Confluent: OAuth identity pools](https://docs.confluent.io/cloud/current/security/authenticate/workload-identities/identity-providers/oauth/identity-pools.html)

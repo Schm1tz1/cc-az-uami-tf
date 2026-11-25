@@ -13,3 +13,15 @@ variable "identity_pool_name" {
   type        = string
   default     = "azure-kafka-client"
 }
+
+variable "identity_provider_id" {
+  description = "ID of an existing identity provider for this tenant (op-...). If null, the root creates one. Confluent allows one provider for each issuer in an organization."
+  type        = string
+  default     = null
+}
+
+variable "name_prefix" {
+  description = "Optional prefix for the display names of the resources this root creates. The name becomes <prefix>_<name>."
+  type        = string
+  default     = ""
+}

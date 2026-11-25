@@ -8,6 +8,7 @@ source "$(dirname "$0")/lib.sh"
 : "${KAFKA_BOOTSTRAP:?host:9092}" "${KAFKA_CLUSTER_ID:?lkc-...}"
 
 uri=$(az_out application_id_uri); uami=$(az_out uami_client_id); pool=$(cf_out confluent_identity_pool_id)
+imds="http://169.254.169.254/metadata/identity/oauth2/token?api-version=2025-04-07&resource=$(jq -rn --arg u "$uri" '$u|@uri')&client_id=$uami"
 mkdir -p out
 
 {
@@ -17,9 +18,9 @@ mkdir -p out
   printf 'APP_ID_URI=%q\n' "$uri"
   printf 'UAMI_CLIENT_ID=%q\n' "$uami"
   printf 'IDENTITY_POOL_ID=%q\n' "$pool"
+  printf 'IMDS_URL=%q\n' "$imds"
 } > out/client.env
 
-imds="http://169.254.169.254/metadata/identity/oauth2/token?api-version=2025-04-07&resource=$(jq -rn --arg u "$uri" '$u|@uri')&client_id=$uami"
 cat > out/client-java.properties <<EOF
 # Run the JVM with:
 #   -Dorg.apache.kafka.sasl.oauthbearer.allowed.urls=$imds
@@ -27,6 +28,7 @@ cat > out/client-java.properties <<EOF
 bootstrap.servers=$KAFKA_BOOTSTRAP
 security.protocol=SASL_SSL
 sasl.mechanism=OAUTHBEARER
+sasl.login.callback.handler.class=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler
 sasl.oauthbearer.jwt.retriever.class=io.confluent.security.auth.client.oauth.UamiJwtRetriever
 sasl.oauthbearer.token.endpoint.url=$imds
 sasl.jaas.config=org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required extension_logicalCluster="$KAFKA_CLUSTER_ID" extension_identityPoolId="$pool";

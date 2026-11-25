@@ -4,5 +4,8 @@ packages:
   - python3-pip
   - jq
   - curl
+  - openjdk-17-jre-headless
 runcmd:
   - pip3 install confluent-kafka
+  # Confluent Community CLI tools. The tarball also holds kafka-client-plugins (UamiJwtRetriever).
+  - curl -fsSL https://packages.confluent.io/archive/8.1/confluent-community-8.1.0.tar.gz | tar xz -C /opt
