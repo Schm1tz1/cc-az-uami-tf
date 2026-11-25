@@ -11,8 +11,6 @@ locals {
   cc_claim_role_id = uuidv5("url", "${var.application_id_uri}/${var.cc_claim}")
 }
 
-# ---- Identity ---------------------------------------------------------------
-
 resource "azurerm_resource_group" "identity" {
   name     = var.resource_group_name
   location = var.location
@@ -62,7 +60,7 @@ resource "azuread_app_role_assignment" "kafka_client" {
   resource_object_id  = azuread_service_principal.cc_audience.object_id
 }
 
-# ---- Optional test VM -------------------------------------------------------
+# Optional test VM (create_vm)
 
 resource "azurerm_virtual_network" "vm" {
   count               = local.vm

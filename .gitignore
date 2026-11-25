@@ -13,17 +13,13 @@ out/
 
 # OpenTofu / Terraform
 .terraform/
-*.tfstate
-*.tfstate.*
+*.tfstate*
 *.tfplan
 .terraform.*
 tfplan
-crash.log
-crash.*.log
-override.tf
-override.tf.json
-*_override.tf
-*_override.tf.json
+crash*.log
+override.tf*
+*_override.tf*
 
 # OS and editor
 .DS_Store

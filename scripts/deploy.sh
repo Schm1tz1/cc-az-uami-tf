@@ -20,6 +20,6 @@ mkdir -p out
 cat <<EOF
 
 Pool principal: User:$(cf_out confluent_identity_pool_id)
-Grant it topic (and consumer-group) access in Confluent Cloud: this repo does not.
+This repo does not grant Kafka access. Grant the principal topic access in Confluent Cloud.
 Then: KAFKA_BOOTSTRAP=... KAFKA_CLUSTER_ID=lkc-... KAFKA_TOPIC=... scripts/test-on-vm.sh
 EOF

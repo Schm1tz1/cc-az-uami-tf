@@ -50,7 +50,7 @@ sequenceDiagram
     Kafka-->>App: Allow or deny each request
 ```
 
-The client gets a new token before the old token expires. The client does not store a secret.
+The client gets a new token before the old token expires.
 
 This repository creates:
 
@@ -59,7 +59,7 @@ This repository creates:
 | `azure/`      | Resource group, UAMI, Entra app registration, service principal, optional test VM              |
 | `confluent/`  | One identity provider and one identity pool                                                    |
 
-This repository does **not** create or change the Kafka cluster. It does **not** create role bindings or ACLs. See [Grant Kafka access](#grant-kafka-access).
+This repository does not create or change the Kafka cluster. It does not create role bindings or ACLs. See [Grant Kafka access](#grant-kafka-access).
 
 ## Requirements
 

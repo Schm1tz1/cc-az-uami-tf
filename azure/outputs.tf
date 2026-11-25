@@ -3,11 +3,6 @@ output "tenant_id" {
   value       = data.azuread_client_config.current.tenant_id
 }
 
-output "application_client_id" {
-  description = "Application (client) ID of the Entra app. For reference. It is the aud claim of the token."
-  value       = azuread_application.cc_audience.client_id
-}
-
 output "application_id_uri" {
   description = "Application ID URI. Used as the IMDS resource."
   value       = var.application_id_uri
@@ -21,11 +16,6 @@ output "cc_claim" {
 output "uami_client_id" {
   description = "UAMI client ID. Used as the IMDS client_id."
   value       = azurerm_user_assigned_identity.kafka_client.client_id
-}
-
-output "uami_principal_id" {
-  description = "UAMI service principal object ID."
-  value       = azurerm_user_assigned_identity.kafka_client.principal_id
 }
 
 output "uami_id" {
